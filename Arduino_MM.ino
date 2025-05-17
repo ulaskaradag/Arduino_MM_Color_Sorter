@@ -12,6 +12,10 @@
 #define SERVO_PIN 10
 #define SERVO_PIN2 11  // İkinci servo için pin tanımı
 
+#define greenLed 3
+#define yellowLed 12
+#define redLed 13
+
 Servo servo;
 Servo servo2;  // İkinci servo tanımı
 
@@ -48,14 +52,13 @@ void setup() {
   pinMode(S3, OUTPUT);
   pinMode(sensorOut, INPUT);
 
+  pinMode(greenLed , OUTPUT);
+  pinMode(yellowLed , OUTPUT);
+  pinMode(redLed , OUTPUT);
+
 
   lcd.init(); // Initialize the LCD
   lcd.backlight(); // For turning on the backlight
-  lcd.setCursor(0, 0); // First row, first column
-  lcd.print("Color sensor ");
-  lcd.setCursor(0, 1); // Second row, first column
-  lcd.print("is initilializing...");
-  Serial.println("TCS3200, LCD, Buzzer and Servo are ready to go."); //For debugging purposes
 
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, LOW);
@@ -80,25 +83,21 @@ void setup() {
 
 void loop() {
 
+  
   servo.write(servoAngle);
   servo2.write(servo2Angle);  // İkinci servoyu başlangıç pozisyonuna getir
   delay(1000);
   servoAngle = 133;
+  digitalWrite(yellowLed , HIGH);
   servo.write(servoAngle);
   delay(1500);
+  digitalWrite(yellowLed , LOW);
   
   
   redValue = readColor('r');
   greenValue = readColor('g');
   blueValue = readColor('b');
 
-  // Okunan Ham Değerleri Yazdır (KALİBRASYON İÇİN ÖNEMLİ!)
-  Serial.print("Color values -> R: ");
-  Serial.print(redValue);
-  Serial.print(" G: ");
-  Serial.print(greenValue);
-  Serial.print(" B: ");
-  Serial.println(blueValue);
   delay(2000); //Must be adjusted.
 
   
@@ -112,49 +111,51 @@ void loop() {
 
   
   if(detectedColor.equals("unknown")){
+    digitalWrite(redLed , HIGH);
     digitalWrite(BUZZER_PIN , HIGH);
     delay(500);
     digitalWrite(BUZZER_PIN,  LOW);
+    digitalWrite(redLed , LOW);
+  } else {
+    digitalWrite(greenLed , HIGH);
   }
 
-  lcd.clear(); // Önceki yazıyı temizle (titreşime neden olabilir, alternatif aşağıda)
+   // Önceki yazıyı temizle (titreşime neden olabilir, alternatif aşağıda)
   lcd.setCursor(0, 0); // İmleci başa al (ilk satır)
   lcd.print("Color: ");
-  lcd.println(detectedColor);
-  lcd.setCursor(0, 1);
+  lcd.println(detectedColor); 
+  lcd.setCursor(0, 1); 
   //Buralara kaydırağın açısı yazılacak
+  
   if (detectedColor.equals("red")) {
     redCount++;
     lcd.println("Total: " + String(redCount) + " " + detectedColor);
-    servo2Angle = 80; 
+    servo2Angle = 130; 
     servo2.write(servo2Angle);
   } else if (detectedColor.equals("orange")) {
     orangeCount++;
     lcd.println("Total: " + String(orangeCount) + " " + detectedColor);
-    servo2Angle = 70; 
+    servo2Angle = 110; 
     servo2.write(servo2Angle);
   } else if (detectedColor.equals("yellow")) {
     yellowCount++;
     lcd.println("Total: " + String(yellowCount) + " " + detectedColor);
-    servo2Angle = 60; 
+    servo2Angle = 90; 
     servo2.write(servo2Angle);
   } else if (detectedColor.equals("green")) {
     greenCount++;
     lcd.println("Total: " + String(greenCount) + " " + detectedColor);
-    servo2Angle = 50; 
+    servo2Angle = 70; 
     servo2.write(servo2Angle);
   } else if (detectedColor.equals("blue")) {
     blueCount++;
     lcd.println("Total: " + String(blueCount) + " " + detectedColor);
-    servo2Angle = 40; 
+    servo2Angle = 50; 
     servo2.write(servo2Angle);
   } else if (detectedColor.equals("brown")) {
     brownCount++;
     lcd.println("Total: " + String(brownCount) + " " + detectedColor);
     servo2Angle = 30; 
-    servo2.write(servo2Angle);
-  } else {
-    servo2Angle = 20;
     servo2.write(servo2Angle);
   }
   
@@ -163,6 +164,7 @@ void loop() {
   servo.write(servoAngle);
   delay(500);
   servoAngle = 180; //back to default position
+  delay(1000);
   servo2Angle = 0; //back to default position
   servo2.write(servo2Angle);
   Serial.print("Kaydirak acisi: ");
@@ -172,6 +174,7 @@ void loop() {
     lcd.setCursor(0, 1);
     lcd.print("Buzzer activated");
   }
+  digitalWrite(greenLed , LOW);
 }
 
 
@@ -215,12 +218,12 @@ String determineColor(int r, int g, int b) {
   
   // Note: Lower pulseIn value = More aggresive color.
 
- if ((r >= 74 && r <= 83) && (g >= 96 && g <= 105) && (b >= 76 && b <= 85)) { return "red"; }
- if ((r >= 71 && r <= 78) && (g >= 89 && g <= 100) && (b >= 75 && b <= 83)) { return "orange"; }
- if ((r >= 85 && r <= 93) && (g >= 98 && g <= 107) && (b >= 81 && b <= 86)) { return "brown"; }
- if ((r >= 84 && r <= 90) && (g >= 77 && g <= 92) && (b >= 77 && b <= 81)) { return "green"; }
- if ((r >= 82 && r <= 98) && (g >= 83 && g <= 98) && (b >= 63 && b <= 77)) { return "blue"; }
- if ((r >= 56 && r <= 71) && (g >= 67 && g <= 82) && (b >= 67 && b <= 77)) { return "yellow"; }
- else { return "unknown"; }
+ if ((r >= 70 && r <= 90) && (g >= 100 && g <= 115) && (b >= 70 && b <= 100)) { return "red";}
+else if ((r >= 65 && r <= 85) && (g >= 90 && g <= 105) && (b >= 80 && b <= 100)) { return "orange"; }
+else if ((r >= 80 && r <= 105) && (g >= 95 && g <= 110) && (b >= 75 && b <= 90)) { return "brown"; }
+else if ((r >= 80 && r <= 100) && (g >= 75 && g <= 100) && (b >= 70 && b <= 90)) { return "green"; }
+else if ((r >= 80 && r <= 105) && (g >= 80 && g <= 105) && (b >= 50 && b <= 85)) { return "blue"; }
+else if ((r >= 50 && r <= 75) && (g >= 60 && g <= 95) && (b >= 65 && b <= 81)) { return "yellow"; }
+else { return "unknown"; }
 }
 
