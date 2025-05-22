@@ -10,14 +10,13 @@
 #define sensorOut 8
 #define BUZZER_PIN 9 
 #define SERVO_PIN 10
-#define SERVO_PIN2 11  // İkinci servo için pin tanımı
+#define SERVO_PIN2 11  
 
 #define greenLed 3
 #define yellowLed 12
 #define redLed 13
 
-Servo servo;
-Servo servo2;  // İkinci servo tanımı
+Servo servo , servo2;
 
 //Notes pins [4:8] belongs to TCS3200 color sensor.Servo must be connected to one of the PWM(Pulse width modulation) pins which are {3,5,6,9,10,11}
 
@@ -27,8 +26,10 @@ Servo servo2;  // İkinci servo tanımı
 LiquidCrystal_I2C lcd(I2C_ADDR, LCD_COLUMNS, LCD_ROWS);
 
 
-int servoAngle = 180;
-int servo2Angle = 0;  // İkinci servo için başlangıç açısı
+//Initial servo angles.
+
+int upperServoAngle = 180;
+int lowerServoAngle = 55;  
 
 int redValue = 0;
 int greenValue = 0;
@@ -41,7 +42,6 @@ int orangeCount = 0;
 int brownCount = 0;
 int yellowCount = 0;
 int totalCandy = 0;
-
 
 
 void setup() {
@@ -57,128 +57,117 @@ void setup() {
   pinMode(redLed , OUTPUT);
 
 
-  lcd.init(); // Initialize the LCD
-  lcd.backlight(); // For turning on the backlight
+  lcd.init(); // Initializing LCD
+  lcd.backlight(); // For turning on the backlight of the LCD
 
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW);
 
 
-  delay(500); // Servo'nun başlangıç pozisyonuna gitmesi için kısa bir süre bekle
+  delay(500); // Wait servo to return 
   servo.attach(SERVO_PIN);
-  servo2.attach(SERVO_PIN2);  // İkinci servoyu bağla
-  Serial.begin(9600);
+  servo2.attach(SERVO_PIN2);  
 
-  Serial.begin(9600);
-  Serial.println("TCS3200 Renk Sensörü Hazır");
 
-  // Frekans ölçeklendirmeyi %20 olarak ayarla (HIGH, LOW)
+  // Set Frequency scale as 20% (HIGH, LOW)
   digitalWrite(S0, HIGH);
   digitalWrite(S1, LOW);
 
-  delay(100); // Küçük bir bekleme
-  lcd.clear(); // LCD ekranını temizle
+  delay(100); 
+  lcd.clear(); 
 
 }
 
 void loop() {
 
   
-  servo.write(servoAngle);
-  servo2.write(servo2Angle);  // İkinci servoyu başlangıç pozisyonuna getir
+  servo.write(upperServoAngle);
+  servo2.write(lowerServoAngle);
   delay(1000);
-  servoAngle = 133;
+  upperServoAngle = 133;
   digitalWrite(yellowLed , HIGH);
-  servo.write(servoAngle);
+  servo.write(upperServoAngle);
   delay(1500);
-  digitalWrite(yellowLed , LOW);
   
-  
+
   redValue = readColor('r');
   greenValue = readColor('g');
   blueValue = readColor('b');
 
-  delay(2000); //Must be adjusted.
+  /* //Use only before color calibration.After calibration delete it.
+  lcd.setCursor(0,0);
+  lcd.print("R: ");
+  lcd.print(redValue);
+  lcd.print(" G: ");
+  lcd.print(greenValue);
+  lcd.setCursor(0,1);
+  lcd.print("B: ");
+  lcd.print(blueValue); */
 
+
+  delay(2000); //Must be adjusted.
+  digitalWrite(yellowLed , LOW);
   
   String detectedColor = determineColor(redValue, greenValue, blueValue);
-  Serial.print("Detected color: ");
-  Serial.println(detectedColor);
-  Serial.println("--------------------");
 
-  Serial.print("Kaydirak acisi: ");
-  Serial.println(servo2Angle);
-
-  
-  if(detectedColor.equals("unknown")){
-    digitalWrite(redLed , HIGH);
-    digitalWrite(BUZZER_PIN , HIGH);
-    delay(500);
-    digitalWrite(BUZZER_PIN,  LOW);
-    digitalWrite(redLed , LOW);
-  } else {
-    digitalWrite(greenLed , HIGH);
-  }
-
-   // Önceki yazıyı temizle (titreşime neden olabilir, alternatif aşağıda)
-  lcd.setCursor(0, 0); // İmleci başa al (ilk satır)
+  lcd.setCursor(0, 0); 
   lcd.print("Color: ");
   lcd.println(detectedColor); 
   lcd.setCursor(0, 1); 
-  //Buralara kaydırağın açısı yazılacak
+
+
+  if (!detectedColor.equals("unknown")){
+    digitalWrite(greenLed , HIGH);
+  } else {
+    digitalWrite(redLed , HIGH);
+  }
   
+  uint8_t lowerServoAngles[6] = {0,25,50,75,100,137};
+  
+
   if (detectedColor.equals("red")) {
     redCount++;
     lcd.println("Total: " + String(redCount) + " " + detectedColor);
-    servo2Angle = 130; 
-    servo2.write(servo2Angle);
+    lowerServoAngle = lowerServoAngles[5];
   } else if (detectedColor.equals("orange")) {
     orangeCount++;
     lcd.println("Total: " + String(orangeCount) + " " + detectedColor);
-    servo2Angle = 110; 
-    servo2.write(servo2Angle);
+    lowerServoAngle = lowerServoAngles[4];
   } else if (detectedColor.equals("yellow")) {
     yellowCount++;
     lcd.println("Total: " + String(yellowCount) + " " + detectedColor);
-    servo2Angle = 90; 
-    servo2.write(servo2Angle);
+    lowerServoAngle = lowerServoAngles[3];
   } else if (detectedColor.equals("green")) {
     greenCount++;
     lcd.println("Total: " + String(greenCount) + " " + detectedColor);
-    servo2Angle = 70; 
-    servo2.write(servo2Angle);
   } else if (detectedColor.equals("blue")) {
     blueCount++;
     lcd.println("Total: " + String(blueCount) + " " + detectedColor);
-    servo2Angle = 50; 
-    servo2.write(servo2Angle);
+    lowerServoAngle = lowerServoAngles[1];
   } else if (detectedColor.equals("brown")) {
     brownCount++;
     lcd.println("Total: " + String(brownCount) + " " + detectedColor);
-    servo2Angle = 30; 
-    servo2.write(servo2Angle);
+    lowerServoAngle = lowerServoAngles[0];
+  } else { // When detectedColor == "unknown";
+    digitalWrite(BUZZER_PIN , HIGH);
+    delay(500);
+    digitalWrite(BUZZER_PIN,  LOW);
   }
   
-  //Atış işlemine başlama
-  servoAngle = 80;
-  servo.write(servoAngle);
+  servo2.write(lowerServoAngle);
+
+  // Throwing process
+  upperServoAngle = 80;
+  servo.write(upperServoAngle);
   delay(500);
-  servoAngle = 180; //back to default position
+  upperServoAngle = 180; //back to default position
   delay(1000);
-  servo2Angle = 0; //back to default position
-  servo2.write(servo2Angle);
-  Serial.print("Kaydirak acisi: ");
-  Serial.println(servo2Angle);
-  
-  if(detectedColor.equals("unknown")){
-    lcd.setCursor(0, 1);
-    lcd.print("Buzzer activated");
-  }
+  lowerServoAngle = 55; //back to default position
+  servo2.write(lowerServoAngle);
   digitalWrite(greenLed , LOW);
+  digitalWrite(redLed , LOW);
 }
 
 
-// Belirtilen renk filtresini seçip frekansı (pulseIn değeri) okuyan fonksiyon
 int readColor(char color) {
   switch (color) {
     case 'r': // Red filter
@@ -201,29 +190,29 @@ int readColor(char color) {
 
   delayMicroseconds(150); //Time to wait for the adaptation of the filter.
 
-  // OUT pinindeki sinyalin LOW süresini mikrosaniye cinsinden oku
-  // Düşük değer = Yüksek Frekans = Yoğun Renk
-  unsigned long pulseDuration = pulseIn(sensorOut, LOW);
+  // Read LOW count as microseconds from the signal of OUT pin
+  // Lower value = Higher Frequency = More Aggressive Color
+  long int pulseDuration = pulseIn(sensorOut, LOW);
 
-  // Eğer pulseIn zaman aşımına uğrarsa (0 dönerse) veya çok yüksekse, makul bir üst sınır ver.
-  if (pulseDuration == 0 || pulseDuration > 50000) { // 50000us sınırı deneyerek ayarlanabilir
-     return 50000; // Veya başka bir hata/maksimum değer
+  // Set upper bound as 50000 in case for timeout(return 0) or too high.
+  if (pulseDuration == 0 || pulseDuration > 50000) { 
+     return 50000; 
   }
 
   return pulseDuration;
 }
 
-// Ham R, G, B değerlerine göre rengi belirleyen fonksiyon (KALİBRASYON GEREKLİ!)
 String determineColor(int r, int g, int b) {
   
   // Note: Lower pulseIn value = More aggresive color.
 
- if ((r >= 70 && r <= 90) && (g >= 100 && g <= 115) && (b >= 70 && b <= 100)) { return "red";}
-else if ((r >= 65 && r <= 85) && (g >= 90 && g <= 105) && (b >= 80 && b <= 100)) { return "orange"; }
-else if ((r >= 80 && r <= 105) && (g >= 95 && g <= 110) && (b >= 75 && b <= 90)) { return "brown"; }
-else if ((r >= 80 && r <= 100) && (g >= 75 && g <= 100) && (b >= 70 && b <= 90)) { return "green"; }
-else if ((r >= 80 && r <= 105) && (g >= 80 && g <= 105) && (b >= 50 && b <= 85)) { return "blue"; }
-else if ((r >= 50 && r <= 75) && (g >= 60 && g <= 95) && (b >= 65 && b <= 81)) { return "yellow"; }
-else { return "unknown"; }
+  if ((r >= 70 && r <= 100) && (g >= 100 && g <= 125) && (b >= 85 && b <= 100)) { return "red";}
+  else if ((r >= 70 && r <= 80) && (g >= 75 && g <= 100) && (b >= 75 && b <= 85)) { return "orange"; }
+  else if ((r >= 80 && r <= 95) && (g >= 85 && g <= 105) && (b >= 70 && b <= 85)) { return "brown"; }
+  else if ((r >= 75 && r <= 90) && (g >= 80 && g <= 95) && (b >= 70 && b <= 85)) { return "green"; }
+  else if ((r >= 85 && r <= 105) && (g >= 80 && g <= 100) && (b >= 60 && b <= 80)) { return "blue"; }
+  else if ((r >= 60 && r <= 75) && (g >= 65 && g <= 86) && (b >= 70 && b <= 80)) { return "yellow"; }
+  else { return "unknown"; }
 }
-
+         
+ 
